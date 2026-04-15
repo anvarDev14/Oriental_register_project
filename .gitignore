@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Database
+*.db
+*.sqlite3
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Media (passport photos - private data)
+media/passports/*
+!media/passports/.gitkeep
+
+# IDE
+.vscode/
+.idea/
