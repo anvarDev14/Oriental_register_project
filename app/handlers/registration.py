@@ -13,6 +13,7 @@ from app.keyboards.user_kb import (
     get_start_kb,
     get_phone_kb,
     get_skip_kb,
+    get_level_kb,
     get_direction_kb,
     get_study_type_kb,
     get_confirm_kb,
@@ -172,25 +173,42 @@ async def process_passport_id(message: Message, state: FSMContext):
         )
         return
     await state.update_data(passport_id=passport_id)
-    await _ask_direction(message, state)
+    await _ask_level(message, state)
 
 
 @router.callback_query(Register.waiting_for_passport_id, F.data == "skip_passport")
 async def skip_passport(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.update_data(passport_id=None)
-    await _ask_direction(callback.message, state)
+    await _ask_level(callback.message, state)
 
 
-async def _ask_direction(message: Message, state: FSMContext):
-    await state.set_state(Register.waiting_for_direction)
+async def _ask_level(message: Message, state: FSMContext):
+    await state.set_state(Register.waiting_for_level)
     await message.answer(
-        "5-qadam: Ta'lim yo'nalishini tanlang:",
-        reply_markup=get_direction_kb(),
+        "5-qadam: Ta'lim darajasini tanlang:",
+        reply_markup=get_level_kb(),
     )
 
 
-# ── 5-qadam: Yo'nalish ───────────────────────────────────────
+# ── 5-qadam: Ta'lim darajasi ─────────────────────────────────
+@router.callback_query(Register.waiting_for_level, F.data.startswith("level_"))
+async def process_level(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    level = callback.data.replace("level_", "")  # "Bakalavr" yoki "Magistratura"
+    await state.update_data(level=level)
+    await _ask_direction(callback.message, state, level)
+
+
+async def _ask_direction(message: Message, state: FSMContext, level: str):
+    await state.set_state(Register.waiting_for_direction)
+    await message.answer(
+        f"6-qadam: Ta'lim yo'nalishini tanlang (<b>{level}</b>):",
+        reply_markup=get_direction_kb(level),
+    )
+
+
+# ── 6-qadam: Yo'nalish ───────────────────────────────────────
 @router.callback_query(Register.waiting_for_direction, F.data.startswith("dir_"))
 async def process_direction(callback: CallbackQuery, state: FSMContext):
     direction_id = int(callback.data.split("_")[1])
@@ -204,18 +222,18 @@ async def process_direction(callback: CallbackQuery, state: FSMContext):
     try:
         await callback.message.edit_text(
             f"✅ Yo'nalish: <b>{d['name']}</b>\n\n"
-            "6-qadam: Ta'lim shaklini tanlang:",
+            "7-qadam: Ta'lim shaklini tanlang:",
             reply_markup=get_study_type_kb(direction_id),
         )
     except TelegramBadRequest:
         pass
 
 
-# ── 6-qadam: Ta'lim shakli ───────────────────────────────────
+# ── 7-qadam: Ta'lim shakli ───────────────────────────────────
 @router.callback_query(Register.waiting_for_study_type, F.data.startswith("type_"))
 async def process_study_type(callback: CallbackQuery, state: FSMContext):
-    study_type = callback.data.replace("type_", "")  # "Kunduzgi" yoki "Kechki"
     await callback.answer()
+    study_type = callback.data.replace("type_", "")  # "Kunduzgi" yoki "Kechki"
     await state.update_data(study_type=study_type, confirm_step=0)
     await state.set_state(Register.waiting_for_confirmation)
     await callback.message.answer(
@@ -225,7 +243,7 @@ async def process_study_type(callback: CallbackQuery, state: FSMContext):
     )
 
 
-# ── 7-qadam: Tasdiqlash savollari ────────────────────────────
+# ── 8-qadam: Tasdiqlash savollari ────────────────────────────
 @router.callback_query(Register.waiting_for_confirmation, F.data == "confirm_no")
 async def confirm_no(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
@@ -270,7 +288,8 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
     await state.clear()
 
     direction_id = data["direction_id"]
-    study_type = data["study_type"]   # "Kunduzgi", "Kechki" yoki "Sirtqi"
+    study_type = data["study_type"]   # "Kunduzgi" yoki "Kechki"
+    level = data.get("level", "Bakalavr")
     price_int = get_price(direction_id, study_type)
     price_str = format_price(price_int)
 
@@ -280,6 +299,7 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
         phone_number=data["phone_number"],
         jshshir=data.get("jshshir"),
         passport_id=data.get("passport_id"),
+        level=level,
         direction=data["direction_name"],
         study_type=study_type,
     )
@@ -291,6 +311,7 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
         f"📱 Telefon: <b>{user.phone_number}</b>\n"
         f"🪪 JSHSHIR: <code>{user.jshshir or '—'}</code>\n"
         f"📄 Pasport: <b>{user.passport_id or '—'}</b>\n"
+        f"🎓 Daraja: <b>{user.level}</b>\n"
         f"📚 Yo'nalish: <b>{user.direction}</b>\n"
         f"📋 Ta'lim shakli: <b>{user.study_type}</b>\n"
         f"💰 Yillik to'lov: <b>{price_str}</b>\n\n"
@@ -304,6 +325,7 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
         phone=user.phone_number,
         jshshir=user.jshshir or "",
         passport_id=user.passport_id or "",
+        level=user.level,
         direction=user.direction,
         study_type=user.study_type,
         price=price_str,

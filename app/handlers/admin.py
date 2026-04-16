@@ -79,6 +79,7 @@ async def admin_all_users(callback: CallbackQuery):
             f"   📱 {user.phone_number}\n"
             f"   🪪 JSHSHIR: <code>{user.jshshir or '—'}</code>\n"
             f"   📄 Pasport: <b>{user.passport_id or '—'}</b>\n"
+            f"   🎓 {getattr(user, 'level', 'Bakalavr')}\n"
             f"   📚 {user.direction}\n"
             f"   📋 {user.study_type}\n"
             f"   📅 {user.created_at.strftime('%d.%m.%Y %H:%M')}\n"
@@ -160,8 +161,8 @@ async def admin_export_excel(callback: CallbackQuery):
     header_fill = PatternFill(start_color="2E86AB", end_color="2E86AB", fill_type="solid")
     header_align = Alignment(horizontal="center", vertical="center")
 
-    headers = ["#", "F.I.SH", "Telefon", "JSHSHIR", "Pasport", "Yo'nalish", "Shakl", "Sana"]
-    col_widths = [5, 28, 16, 16, 12, 40, 14, 18]
+    headers = ["#", "F.I.SH", "Telefon", "JSHSHIR", "Pasport", "Daraja", "Yo'nalish", "Shakl", "Sana"]
+    col_widths = [5, 28, 16, 16, 12, 14, 40, 14, 18]
 
     for col, (header, width) in enumerate(zip(headers, col_widths), 1):
         cell = ws.cell(row=1, column=col, value=header)
@@ -176,13 +177,14 @@ async def admin_export_excel(callback: CallbackQuery):
         row_data = [
             i, user.full_name, user.phone_number,
             user.jshshir or "—", user.passport_id or "—",
+            getattr(user, "level", "Bakalavr"),
             user.direction, user.study_type,
             user.created_at.strftime("%d.%m.%Y %H:%M"),
         ]
         for col, value in enumerate(row_data, 1):
             cell = ws.cell(row=i + 1, column=col, value=value)
             cell.alignment = Alignment(
-                horizontal="center" if col != 2 else "left", vertical="center"
+                horizontal="center" if col not in (2, 7) else "left", vertical="center"
             )
 
     buffer = io.BytesIO()
@@ -221,8 +223,8 @@ async def admin_export_pdf(callback: CallbackQuery):
              align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(3)
 
-    col_widths = [8, 52, 32, 34, 24, 60, 20, 37]
-    headers = ["#", "F.I.SH", "Telefon", "JSHSHIR", "Pasport", "Yo'nalish", "Shakl", "Sana"]
+    col_widths = [8, 46, 30, 30, 20, 18, 50, 18, 27]
+    headers = ["#", "F.I.SH", "Telefon", "JSHSHIR", "Pasport", "Daraja", "Yo'nalish", "Shakl", "Sana"]
 
     pdf.set_font("DejaVu", "B", 9)
     pdf.set_fill_color(46, 134, 171)
@@ -242,9 +244,10 @@ async def admin_export_pdf(callback: CallbackQuery):
             (user.phone_number, col_widths[2], "C"),
             (user.jshshir or "—", col_widths[3], "C"),
             (user.passport_id or "—", col_widths[4], "C"),
-            (user.direction, col_widths[5], "L"),
-            (user.study_type, col_widths[6], "C"),
-            (user.created_at.strftime("%d.%m.%Y %H:%M"), col_widths[7], "C"),
+            (getattr(user, "level", "Bakalavr"), col_widths[5], "C"),
+            (user.direction, col_widths[6], "L"),
+            (user.study_type, col_widths[7], "C"),
+            (user.created_at.strftime("%d.%m.%Y %H:%M"), col_widths[8], "C"),
         ]
         for value, width, align in row_data:
             pdf.cell(width, 7, value, border=1, align=align, fill=fill)

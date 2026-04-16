@@ -14,6 +14,7 @@ def generate_contract(
     phone: str,
     jshshir: str,
     passport_id: str,
+    level: str,
     direction: str,
     study_type: str,
     price: str,
@@ -85,6 +86,7 @@ def generate_contract(
     info_row("Telefon:",             phone)
     info_row("JSHSHIR:",             jshshir if jshshir else "—")
     info_row("Pasport:",             passport_id if passport_id else "—")
+    info_row("Ta'lim darajasi:",      level)
     info_row("Ta'lim yo'nalishi:",   direction)
     info_row("Ta'lim shakli:",       study_type)
     info_row("Yillik to'lov:",       price)

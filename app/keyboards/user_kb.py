@@ -45,9 +45,22 @@ def get_skip_kb(step: str) -> InlineKeyboardMarkup:
     )
 
 
-def get_direction_kb() -> InlineKeyboardMarkup:
+def get_level_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🎓 Bakalavr",     callback_data="level_Bakalavr")],
+            [InlineKeyboardButton(text="🏫 Magistratura", callback_data="level_Magistratura")],
+        ]
+    )
+
+
+def get_direction_kb(level: str) -> InlineKeyboardMarkup:
     buttons = []
     for d in DIRECTIONS:
+        if d["level"] != level:
+            continue
+        if not d["kunduzgi"] and not d["kechki"]:
+            continue  # narx belgilanmagan — ko'rsatilmaydi
         buttons.append([
             InlineKeyboardButton(
                 text=f"{d['id']}. {d['name']}",
@@ -72,11 +85,6 @@ def get_study_type_kb(direction_id: int) -> InlineKeyboardMarkup:
         buttons.append([InlineKeyboardButton(
             text=f"🌙 Kechki — {format_price(d['kechki'])}",
             callback_data="type_Kechki",
-        )])
-    if d["sirtqi"]:
-        buttons.append([InlineKeyboardButton(
-            text=f"📚 Sirtqi — {format_price(d['sirtqi'])}",
-            callback_data="type_Sirtqi",
         )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

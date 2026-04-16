@@ -17,6 +17,7 @@ async def add_user(
     phone_number: str,
     direction: str,
     study_type: str,
+    level: str = "Bakalavr",
     jshshir: str | None = None,
     passport_id: str | None = None,
 ) -> User:
@@ -27,6 +28,7 @@ async def add_user(
             phone_number=phone_number,
             jshshir=jshshir,
             passport_id=passport_id,
+            level=level,
             direction=direction,
             study_type=study_type,
         )

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from sqlalchemy import BigInteger, String, DateTime, func
+from sqlalchemy import BigInteger, String, DateTime, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import (
     AsyncAttrs,
@@ -31,6 +31,7 @@ class User(Base):
     phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
     jshshir: Mapped[str | None] = mapped_column(String(14), nullable=True)
     passport_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    level: Mapped[str] = mapped_column(String(20), nullable=False, server_default="Bakalavr")
     direction: Mapped[str] = mapped_column(String(255), nullable=False)
     study_type: Mapped[str] = mapped_column(String(20), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -41,3 +42,10 @@ class User(Base):
 async def async_main():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migration: add level column if not exists (SQLite)
+        try:
+            await conn.execute(
+                text("ALTER TABLE users ADD COLUMN level VARCHAR(20) NOT NULL DEFAULT 'Bakalavr'")
+            )
+        except Exception:
+            pass  # column already exists
