@@ -14,7 +14,8 @@ async def main():
     dp.include_router(admin_router)
     dp.include_router(reg_router)
 
-    await dp.start_polling(bot)
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
