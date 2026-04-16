@@ -12,6 +12,7 @@ from fpdf import FPDF
 from app.bot import ADMIN_IDS
 from app.database.requests import get_all_users, get_users_count, delete_user
 from app.keyboards.admin_kb import get_admin_kb, get_back_kb
+from app.utils.contract_pdf import resolve_pdf_fonts
 
 router = Router()
 
@@ -209,8 +210,9 @@ async def admin_export_pdf(callback: CallbackQuery):
 
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
-    pdf.add_font("DejaVu", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    pdf.add_font("DejaVu", "B", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+    font_path, font_bold = resolve_pdf_fonts()
+    pdf.add_font("DejaVu", "", font_path)
+    pdf.add_font("DejaVu", "B", font_bold)
 
     pdf.set_font("DejaVu", "B", 14)
     pdf.set_fill_color(46, 134, 171)

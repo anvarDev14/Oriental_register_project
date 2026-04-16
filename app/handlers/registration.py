@@ -288,21 +288,25 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
     await state.clear()
 
     direction_id = data["direction_id"]
-    study_type = data["study_type"]   # "Kunduzgi" yoki "Kechki"
+    study_type = data["study_type"]
     level = data.get("level", "Bakalavr")
     price_int = get_price(direction_id, study_type)
     price_str = format_price(price_int)
 
-    user = await add_user(
-        tg_id=tg_id,
-        full_name=data["full_name"],
-        phone_number=data["phone_number"],
-        jshshir=data.get("jshshir"),
-        passport_id=data.get("passport_id"),
-        level=level,
-        direction=data["direction_name"],
-        study_type=study_type,
-    )
+    try:
+        user = await add_user(
+            tg_id=tg_id,
+            full_name=data["full_name"],
+            phone_number=data["phone_number"],
+            jshshir=data.get("jshshir"),
+            passport_id=data.get("passport_id"),
+            level=level,
+            direction=data["direction_name"],
+            study_type=study_type,
+        )
+    except Exception as e:
+        await message.answer(f"❌ Ma'lumotlarni saqlashda xato:\n<code>{e}</code>")
+        return
 
     await message.answer(
         "🎓 <b>Tabriklaymiz!</b>\n\n"
@@ -318,24 +322,26 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
         "📎 Shartnomangiz yuborilmoqda..."
     )
 
-    contract_number = make_contract_number(tg_id)
-    pdf_bytes = generate_contract(
-        contract_number=contract_number,
-        full_name=user.full_name,
-        phone=user.phone_number,
-        jshshir=user.jshshir or "",
-        passport_id=user.passport_id or "",
-        level=user.level,
-        direction=user.direction,
-        study_type=user.study_type,
-        price=price_str,
-        bank_account=BANK_ACCOUNT,
-        bank_name=BANK_NAME,
-        bank_mfo=BANK_MFO,
-        date=datetime.now().strftime("%d.%m.%Y"),
-    )
-
-    await message.answer_document(
-        BufferedInputFile(pdf_bytes, filename=f"shartnoma_{contract_number}.pdf"),
-        caption=f"📄 <b>Ta'lim shartnomasi</b>\nShartnoma № <b>{contract_number}</b>",
-    )
+    try:
+        contract_number = make_contract_number(tg_id)
+        pdf_bytes = generate_contract(
+            contract_number=contract_number,
+            full_name=user.full_name,
+            phone=user.phone_number,
+            jshshir=user.jshshir or "",
+            passport_id=user.passport_id or "",
+            level=user.level,
+            direction=user.direction,
+            study_type=user.study_type,
+            price=price_str,
+            bank_account=BANK_ACCOUNT,
+            bank_name=BANK_NAME,
+            bank_mfo=BANK_MFO,
+            date=datetime.now().strftime("%d.%m.%Y"),
+        )
+        await message.answer_document(
+            BufferedInputFile(pdf_bytes, filename=f"shartnoma_{contract_number}.pdf"),
+            caption=f"📄 <b>Ta'lim shartnomasi</b>\nShartnoma № <b>{contract_number}</b>",
+        )
+    except Exception as e:
+        await message.answer(f"❌ Shartnoma yaratishda xato:\n<code>{e}</code>")

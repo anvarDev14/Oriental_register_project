@@ -1,11 +1,35 @@
 import io
 from datetime import datetime
+from pathlib import Path
+
 from fpdf import FPDF
 
-FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_CANDIDATES = [
+    (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ),
+    (
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ),
+    (
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ),
+]
 
 LABEL_W = 52   # label ustuni kengligi (mm)
+
+
+def resolve_pdf_fonts() -> tuple[str, str]:
+    for regular, bold in FONT_CANDIDATES:
+        if Path(regular).is_file() and Path(bold).is_file():
+            return regular, bold
+    searched = ", ".join(path for pair in FONT_CANDIDATES for path in pair)
+    raise FileNotFoundError(
+        f"PDF font fayllari topilmadi. Tekshirilgan yo'llar: {searched}"
+    )
 
 
 def generate_contract(
@@ -25,8 +49,9 @@ def generate_contract(
 ) -> bytes:
     pdf = FPDF()
     pdf.add_page()
-    pdf.add_font("DJ", "",  FONT_PATH)
-    pdf.add_font("DJ", "B", FONT_BOLD)
+    font_path, font_bold = resolve_pdf_fonts()
+    pdf.add_font("DJ", "", font_path)
+    pdf.add_font("DJ", "B", font_bold)
 
     page_w = pdf.w - pdf.l_margin - pdf.r_margin   # ~190mm
 
