@@ -7,6 +7,6 @@ services:
       - .env
     volumes:
       - ./media:/app/media
-      - ./database.db:/app/database.db
+      - ./data:/app/data
     environment:
-      - DB_URL=sqlite+aiosqlite:///./database.db
+      - DB_URL=sqlite+aiosqlite:///./data/database.db
