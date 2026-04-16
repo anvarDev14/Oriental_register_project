@@ -270,8 +270,7 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
     await state.clear()
 
     direction_id = data["direction_id"]
-    study_type = data["study_type"]
-    study_label = "Kunduzgi" if study_type == "Kunduzgi" else "Kechki"
+    study_type = data["study_type"]   # "Kunduzgi", "Kechki" yoki "Sirtqi"
     price_int = get_price(direction_id, study_type)
     price_str = format_price(price_int)
 
@@ -282,7 +281,7 @@ async def _finish_registration(message: Message, state: FSMContext, tg_id: int):
         jshshir=data.get("jshshir"),
         passport_id=data.get("passport_id"),
         direction=data["direction_name"],
-        study_type=study_label,
+        study_type=study_type,
     )
 
     await message.answer(

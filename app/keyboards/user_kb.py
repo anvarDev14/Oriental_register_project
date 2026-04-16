@@ -61,18 +61,24 @@ def get_study_type_kb(direction_id: int) -> InlineKeyboardMarkup:
     d = next((x for x in DIRECTIONS if x["id"] == direction_id), None)
     if not d:
         return InlineKeyboardMarkup(inline_keyboard=[])
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text=f"🌞 Kunduzgi — {format_price(d['kunduzgi'])}",
-                callback_data="type_Kunduzgi"
-            )],
-            [InlineKeyboardButton(
-                text=f"🌙 Kechki — {format_price(d['sirtqi'])}",
-                callback_data="type_Kechki"
-            )],
-        ]
-    )
+
+    buttons = []
+    if d["kunduzgi"]:
+        buttons.append([InlineKeyboardButton(
+            text=f"🌞 Kunduzgi — {format_price(d['kunduzgi'])}",
+            callback_data="type_Kunduzgi",
+        )])
+    if d["kechki"]:
+        buttons.append([InlineKeyboardButton(
+            text=f"🌙 Kechki — {format_price(d['kechki'])}",
+            callback_data="type_Kechki",
+        )])
+    if d["sirtqi"]:
+        buttons.append([InlineKeyboardButton(
+            text=f"📚 Sirtqi — {format_price(d['sirtqi'])}",
+            callback_data="type_Sirtqi",
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def get_confirm_kb() -> InlineKeyboardMarkup:
