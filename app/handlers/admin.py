@@ -4,6 +4,7 @@ from datetime import datetime
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
+from aiogram.exceptions import TelegramBadRequest
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from fpdf import FPDF
@@ -37,38 +38,41 @@ async def cmd_admin(message: Message):
 # ── Admin panel callback ─────────────────────────────────────
 @router.callback_query(F.data == "admin_panel")
 async def admin_panel(callback: CallbackQuery):
+    await callback.answer()
     if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Ruxsat yo'q.", show_alert=True)
         return
 
     count = await get_users_count()
-    await callback.message.edit_text(
-        f"🔐 <b>Admin panel</b>\n\n"
-        f"👥 Jami foydalanuvchilar: <b>{count}</b>",
-        reply_markup=get_admin_kb(),
-    )
-    await callback.answer()
+    try:
+        await callback.message.edit_text(
+            f"🔐 <b>Admin panel</b>\n\n"
+            f"👥 Jami foydalanuvchilar: <b>{count}</b>",
+            reply_markup=get_admin_kb(),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 # ── Barcha foydalanuvchilar ro'yxati ─────────────────────────
 @router.callback_query(F.data == "admin_all_users")
 async def admin_all_users(callback: CallbackQuery):
+    await callback.answer()
     if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Ruxsat yo'q.", show_alert=True)
         return
 
     users = await get_all_users()
 
     if not users:
-        await callback.message.edit_text(
-            "📭 Hali hech kim ro'yxatdan o'tmagan.",
-            reply_markup=get_back_kb(),
-        )
-        await callback.answer()
+        try:
+            await callback.message.edit_text(
+                "📭 Hali hech kim ro'yxatdan o'tmagan.",
+                reply_markup=get_back_kb(),
+            )
+        except TelegramBadRequest:
+            pass
         return
 
     text_lines = ["👥 <b>Barcha foydalanuvchilar:</b>\n"]
-
     for i, user in enumerate(users, 1):
         text_lines.append(
             f"{i}. <b>{user.full_name}</b>\n"
@@ -81,35 +85,36 @@ async def admin_all_users(callback: CallbackQuery):
         )
 
     full_text = "\n".join(text_lines)
-
-    # Telegram xabar limiti 4096 belgi
     if len(full_text) > 4000:
         full_text = full_text[:4000] + "\n\n<i>...ro'yxat qisqartirildi. Excel/PDF yuklab oling.</i>"
 
-    await callback.message.edit_text(full_text, reply_markup=get_back_kb())
-    await callback.answer()
+    try:
+        await callback.message.edit_text(full_text, reply_markup=get_back_kb())
+    except TelegramBadRequest:
+        pass
 
 
 # ── Statistika ───────────────────────────────────────────────
 @router.callback_query(F.data == "admin_stats")
 async def admin_stats(callback: CallbackQuery):
+    await callback.answer()
     if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Ruxsat yo'q.", show_alert=True)
         return
 
     users = await get_all_users()
     total = len(users)
-
     today = datetime.now().date()
     today_count = sum(1 for u in users if u.created_at.date() == today)
 
-    await callback.message.edit_text(
-        "📊 <b>Statistika</b>\n\n"
-        f"👥 Jami ro'yxatdan o'tganlar: <b>{total}</b>\n"
-        f"📅 Bugun ro'yxatdan o'tganlar: <b>{today_count}</b>",
-        reply_markup=get_back_kb(),
-    )
-    await callback.answer()
+    try:
+        await callback.message.edit_text(
+            "📊 <b>Statistika</b>\n\n"
+            f"👥 Jami ro'yxatdan o'tganlar: <b>{total}</b>\n"
+            f"📅 Bugun ro'yxatdan o'tganlar: <b>{today_count}</b>",
+            reply_markup=get_back_kb(),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 # ── Foydalanuvchini o'chirish ────────────────────────────────
@@ -128,21 +133,22 @@ async def admin_delete_user(callback: CallbackQuery):
         await callback.answer("❌ Foydalanuvchi topilmadi.", show_alert=True)
 
     count = await get_users_count()
-    await callback.message.edit_text(
-        f"🔐 <b>Admin panel</b>\n\n"
-        f"👥 Jami foydalanuvchilar: <b>{count}</b>",
-        reply_markup=get_admin_kb(),
-    )
+    try:
+        await callback.message.edit_text(
+            f"🔐 <b>Admin panel</b>\n\n"
+            f"👥 Jami foydalanuvchilar: <b>{count}</b>",
+            reply_markup=get_admin_kb(),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 # ── Excel export ─────────────────────────────────────────────
 @router.callback_query(F.data == "admin_export_excel")
 async def admin_export_excel(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Ruxsat yo'q.", show_alert=True)
-        return
-
     await callback.answer("⏳ Excel tayyorlanmoqda...")
+    if not is_admin(callback.from_user.id):
+        return
 
     users = await get_all_users()
 
@@ -150,7 +156,6 @@ async def admin_export_excel(callback: CallbackQuery):
     ws = wb.active
     ws.title = "Foydalanuvchilar"
 
-    # Sarlavha uslubi
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="2E86AB", end_color="2E86AB", fill_type="solid")
     header_align = Alignment(horizontal="center", vertical="center")
@@ -167,32 +172,26 @@ async def admin_export_excel(callback: CallbackQuery):
 
     ws.row_dimensions[1].height = 22
 
-    # Ma'lumotlar
     for i, user in enumerate(users, 1):
         row_data = [
-            i,
-            user.full_name,
-            user.phone_number,
-            user.jshshir or "—",
-            user.passport_id or "—",
-            user.direction,
-            user.study_type,
+            i, user.full_name, user.phone_number,
+            user.jshshir or "—", user.passport_id or "—",
+            user.direction, user.study_type,
             user.created_at.strftime("%d.%m.%Y %H:%M"),
         ]
         for col, value in enumerate(row_data, 1):
             cell = ws.cell(row=i + 1, column=col, value=value)
-            cell.alignment = Alignment(horizontal="center" if col != 2 else "left", vertical="center")
+            cell.alignment = Alignment(
+                horizontal="center" if col != 2 else "left", vertical="center"
+            )
 
-    # Fayl yuborish
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
 
     filename = f"users_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
-    file = BufferedInputFile(buffer.read(), filename=filename)
-
     await callback.message.answer_document(
-        file,
+        BufferedInputFile(buffer.read(), filename=filename),
         caption=f"📥 <b>Excel fayl</b>\n👥 Jami: <b>{len(users)}</b> ta foydalanuvchi",
     )
 
@@ -200,22 +199,17 @@ async def admin_export_excel(callback: CallbackQuery):
 # ── PDF export ───────────────────────────────────────────────
 @router.callback_query(F.data == "admin_export_pdf")
 async def admin_export_pdf(callback: CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Ruxsat yo'q.", show_alert=True)
-        return
-
     await callback.answer("⏳ PDF tayyorlanmoqda...")
+    if not is_admin(callback.from_user.id):
+        return
 
     users = await get_all_users()
 
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.add_page()
-
-    # Unicode shrift
     pdf.add_font("DejaVu", "", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
     pdf.add_font("DejaVu", "B", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 
-    # Sarlavha
     pdf.set_font("DejaVu", "B", 14)
     pdf.set_fill_color(46, 134, 171)
     pdf.set_text_color(255, 255, 255)
@@ -227,25 +221,21 @@ async def admin_export_pdf(callback: CallbackQuery):
              align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(3)
 
-    # Jadval sarlavhasi
     col_widths = [8, 52, 32, 34, 24, 60, 20, 37]
     headers = ["#", "F.I.SH", "Telefon", "JSHSHIR", "Pasport", "Yo'nalish", "Shakl", "Sana"]
 
     pdf.set_font("DejaVu", "B", 9)
     pdf.set_fill_color(46, 134, 171)
     pdf.set_text_color(255, 255, 255)
-
     for header, width in zip(headers, col_widths):
         pdf.cell(width, 8, header, border=1, align="C", fill=True)
     pdf.ln()
 
-    # Ma'lumotlar
     pdf.set_font("DejaVu", "", 8)
     for i, user in enumerate(users):
         fill = i % 2 == 0
         pdf.set_fill_color(240, 248, 255) if fill else pdf.set_fill_color(255, 255, 255)
         pdf.set_text_color(0, 0, 0)
-
         row_data = [
             (str(i + 1), col_widths[0], "C"),
             (user.full_name, col_widths[1], "L"),
@@ -262,9 +252,7 @@ async def admin_export_pdf(callback: CallbackQuery):
 
     buffer = io.BytesIO(pdf.output())
     filename = f"users_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
-    file = BufferedInputFile(buffer.read(), filename=filename)
-
     await callback.message.answer_document(
-        file,
+        BufferedInputFile(buffer.read(), filename=filename),
         caption=f"📄 <b>PDF fayl</b>\n👥 Jami: <b>{len(users)}</b> ta foydalanuvchi",
     )

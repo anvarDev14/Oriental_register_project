@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, BufferedInputFile
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 
 from app.bot import OWNER_NAME, BANK_ACCOUNT, BANK_NAME, BANK_MFO
 from app.states.register import Register
@@ -53,19 +54,25 @@ async def cmd_start(message: Message, state: FSMContext):
 @router.callback_query(F.data == "bot_owner")
 async def show_bot_owner(callback: CallbackQuery):
     await callback.answer()
-    await callback.message.answer(f"👤 <b>Bot egasi:</b>\n\n<b>{OWNER_NAME}</b>")
+    try:
+        await callback.message.answer(f"👤 <b>Bot egasi:</b>\n\n<b>{OWNER_NAME}</b>")
+    except TelegramBadRequest:
+        pass
 
 
 # ── Ro'yxatdan o'tish boshlash ───────────────────────────────
 @router.callback_query(F.data == "register")
 async def start_registration(callback: CallbackQuery, state: FSMContext):
-    await callback.message.edit_text(
-        "📝 <b>Ro'yxatdan o'tish</b>\n\n"
-        "1-qadam: To'liq ismingizni kiriting (F.I.SH).\n\n"
-        "<i>Masalan: Aliyev Ali Valiyevich</i>"
-    )
-    await state.set_state(Register.waiting_for_fullname)
     await callback.answer()
+    await state.set_state(Register.waiting_for_fullname)
+    try:
+        await callback.message.edit_text(
+            "📝 <b>Ro'yxatdan o'tish</b>\n\n"
+            "1-qadam: To'liq ismingizni kiriting (F.I.SH).\n\n"
+            "<i>Masalan: Aliyev Ali Valiyevich</i>"
+        )
+    except TelegramBadRequest:
+        pass
 
 
 # ── 1-qadam: F.I.SH ─────────────────────────────────────────
@@ -138,8 +145,8 @@ async def process_jshshir(message: Message, state: FSMContext):
 
 @router.callback_query(Register.waiting_for_jshshir, F.data == "skip_jshshir")
 async def skip_jshshir(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(jshshir=None)
     await callback.answer()
+    await state.update_data(jshshir=None)
     await _ask_passport(callback.message, state)
 
 
@@ -170,8 +177,8 @@ async def process_passport_id(message: Message, state: FSMContext):
 
 @router.callback_query(Register.waiting_for_passport_id, F.data == "skip_passport")
 async def skip_passport(callback: CallbackQuery, state: FSMContext):
-    await state.update_data(passport_id=None)
     await callback.answer()
+    await state.update_data(passport_id=None)
     await _ask_direction(callback.message, state)
 
 
@@ -191,23 +198,26 @@ async def process_direction(callback: CallbackQuery, state: FSMContext):
     if not d:
         await callback.answer("Noto'g'ri tanlov.", show_alert=True)
         return
+    await callback.answer()
     await state.update_data(direction_id=direction_id, direction_name=d["name"])
     await state.set_state(Register.waiting_for_study_type)
-    await callback.message.edit_text(
-        f"✅ Yo'nalish: <b>{d['name']}</b>\n\n"
-        "6-qadam: Ta'lim shaklini tanlang:",
-        reply_markup=get_study_type_kb(direction_id),
-    )
-    await callback.answer()
+    try:
+        await callback.message.edit_text(
+            f"✅ Yo'nalish: <b>{d['name']}</b>\n\n"
+            "6-qadam: Ta'lim shaklini tanlang:",
+            reply_markup=get_study_type_kb(direction_id),
+        )
+    except TelegramBadRequest:
+        pass
 
 
 # ── 6-qadam: Ta'lim shakli ───────────────────────────────────
 @router.callback_query(Register.waiting_for_study_type, F.data.startswith("type_"))
 async def process_study_type(callback: CallbackQuery, state: FSMContext):
     study_type = callback.data.replace("type_", "")  # "Kunduzgi" yoki "Kechki"
+    await callback.answer()
     await state.update_data(study_type=study_type, confirm_step=0)
     await state.set_state(Register.waiting_for_confirmation)
-    await callback.answer()
     await callback.message.answer(
         "📝 <b>Shartnomani tasdiqlashdan oldin bir necha savol:</b>\n\n" +
         CONFIRMATION_QUESTIONS[0],
@@ -219,11 +229,14 @@ async def process_study_type(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(Register.waiting_for_confirmation, F.data == "confirm_no")
 async def confirm_no(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-    await callback.message.edit_text(
-        "❌ Shartnoma bekor qilindi.\n\n"
-        "Qayta urinish uchun /start ni bosing."
-    )
     await state.clear()
+    try:
+        await callback.message.edit_text(
+            "❌ Shartnoma bekor qilindi.\n\n"
+            "Qayta urinish uchun /start ni bosing."
+        )
+    except TelegramBadRequest:
+        pass
 
 
 @router.callback_query(Register.waiting_for_confirmation, F.data == "confirm_yes")
@@ -234,14 +247,20 @@ async def confirm_yes(callback: CallbackQuery, state: FSMContext):
 
     if step < len(CONFIRMATION_QUESTIONS):
         await state.update_data(confirm_step=step)
-        await callback.message.edit_text(
-            CONFIRMATION_QUESTIONS[step],
-            reply_markup=get_confirm_kb(),
-        )
+        try:
+            await callback.message.edit_text(
+                CONFIRMATION_QUESTIONS[step],
+                reply_markup=get_confirm_kb(),
+            )
+        except TelegramBadRequest:
+            pass
     else:
-        await callback.message.edit_text(
-            "✅ Barcha savollarga javob berildi. Shartnoma tayyorlanmoqda..."
-        )
+        try:
+            await callback.message.edit_text(
+                "✅ Barcha savollarga javob berildi. Shartnoma tayyorlanmoqda..."
+            )
+        except TelegramBadRequest:
+            pass
         await _finish_registration(callback.message, state, tg_id=callback.from_user.id)
 
 
