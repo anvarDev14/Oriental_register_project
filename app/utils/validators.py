@@ -12,7 +12,17 @@ def validate_fullname(name: str) -> bool:
     parts = name.strip().split()
     if len(parts) < 2:
         return False
-    return all(part.isalpha() for part in parts)
+    return all(re.match(r"^[a-zA-ZʼА-Яа-яЁёA-Za-z']+$", part) for part in parts)
+
+
+def validate_jshshir(jshshir: str) -> bool:
+    """JSHSHIR tekshirish: aniq 14 ta raqam"""
+    return bool(re.match(r"^\d{14}$", jshshir.strip()))
+
+
+def validate_passport_id(passport_id: str) -> bool:
+    """Pasport seriya va raqamini tekshirish: 2 harf + 7 raqam (masalan: AB1234567)"""
+    return bool(re.match(r"^[A-Za-z]{2}\d{7}$", passport_id.strip()))
 
 
 def format_phone(phone: str) -> str:

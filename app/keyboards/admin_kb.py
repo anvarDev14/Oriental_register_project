@@ -6,6 +6,10 @@ def get_admin_kb() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="👥 Barcha foydalanuvchilar", callback_data="admin_all_users")],
             [InlineKeyboardButton(text="📊 Statistika", callback_data="admin_stats")],
+            [
+                InlineKeyboardButton(text="📥 Excel", callback_data="admin_export_excel"),
+                InlineKeyboardButton(text="📄 PDF", callback_data="admin_export_pdf"),
+            ],
         ]
     )
 

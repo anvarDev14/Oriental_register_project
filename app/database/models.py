@@ -26,10 +26,13 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    tg_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     phone_number: Mapped[str] = mapped_column(String(20), nullable=False)
-    passport_photo_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    jshshir: Mapped[str | None] = mapped_column(String(14), nullable=True)
+    passport_id: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    direction: Mapped[str] = mapped_column(String(255), nullable=False)
+    study_type: Mapped[str] = mapped_column(String(20), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
     )

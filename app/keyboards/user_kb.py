@@ -6,6 +6,8 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
+from app.utils.directions import DIRECTIONS, format_price
+
 
 def get_phone_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
@@ -17,18 +19,69 @@ def get_phone_kb() -> ReplyKeyboardMarkup:
     )
 
 
-def get_skip_kb() -> InlineKeyboardMarkup:
+def get_start_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⏭ O'tkazib yuborish", callback_data="skip_passport")]
+            [InlineKeyboardButton(text="📝 Ro'yxatdan o'tish", callback_data="register")],
+            [InlineKeyboardButton(text="👤 Bot egasi", callback_data="bot_owner")],
         ]
     )
 
 
-def get_start_kb() -> InlineKeyboardMarkup:
+def get_registered_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📝 Ro'yxatdan o'tish", callback_data="register")]
+            [InlineKeyboardButton(text="📝 Yana ro'yxatdan o'tish", callback_data="register")],
+            [InlineKeyboardButton(text="👤 Bot egasi", callback_data="bot_owner")],
+        ]
+    )
+
+
+def get_skip_kb(step: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ O'tkazib yuborish", callback_data=f"skip_{step}")]
+        ]
+    )
+
+
+def get_direction_kb() -> InlineKeyboardMarkup:
+    buttons = []
+    for d in DIRECTIONS:
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"{d['id']}. {d['name']}",
+                callback_data=f"dir_{d['id']}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_study_type_kb(direction_id: int) -> InlineKeyboardMarkup:
+    d = next((x for x in DIRECTIONS if x["id"] == direction_id), None)
+    if not d:
+        return InlineKeyboardMarkup(inline_keyboard=[])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text=f"🌞 Kunduzgi — {format_price(d['kunduzgi'])}",
+                callback_data="type_Kunduzgi"
+            )],
+            [InlineKeyboardButton(
+                text=f"🌙 Kechki — {format_price(d['sirtqi'])}",
+                callback_data="type_Kechki"
+            )],
+        ]
+    )
+
+
+def get_confirm_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Ha, roziman", callback_data="confirm_yes"),
+                InlineKeyboardButton(text="❌ Yo'q", callback_data="confirm_no"),
+            ]
         ]
     )
 
