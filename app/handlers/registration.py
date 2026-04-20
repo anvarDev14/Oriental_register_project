@@ -17,8 +17,10 @@ from app.keyboards.user_kb import (
     get_direction_kb,
     get_study_type_kb,
     get_confirm_kb,
+    get_test_kb,
     remove_kb,
 )
+from app.utils.tests import TESTS, get_random_tests
 from app.utils.validators import (
     validate_fullname,
     validate_phone,
@@ -274,11 +276,67 @@ async def confirm_yes(callback: CallbackQuery, state: FSMContext):
             pass
     else:
         try:
-            await callback.message.edit_text(
-                "✅ Barcha savollarga javob berildi. Shartnoma tayyorlanmoqda..."
-            )
+            await callback.message.edit_text("✅ Barcha savollarga javob berildi.")
         except TelegramBadRequest:
             pass
+        await _start_tests(callback.message, state)
+
+
+# ── Testlar ──────────────────────────────────────────────────
+async def _start_tests(message: Message, state: FSMContext):
+    selected = get_random_tests(10)
+    indices = [TESTS.index(t) for t in selected]
+    await state.update_data(test_indices=indices, test_index=0, test_correct=0)
+    await state.set_state(Register.waiting_for_test)
+    await _show_test(message, state)
+
+
+async def _show_test(message: Message, state: FSMContext):
+    data = await state.get_data()
+    idx = data["test_index"]
+    total = len(data["test_indices"])
+    test = TESTS[data["test_indices"][idx]]
+
+    opts = test["options"]
+    text = (
+        f"🧠 <b>Test {idx + 1}/{total}</b>\n\n"
+        f"📝 {test['question']}\n\n"
+        f"A) {opts['A']}\n"
+        f"B) {opts['B']}\n"
+        f"C) {opts['C']}\n"
+        f"D) {opts['D']}"
+    )
+    await message.answer(text, reply_markup=get_test_kb())
+
+
+@router.callback_query(Register.waiting_for_test, F.data.startswith("test_"))
+async def process_test_answer(callback: CallbackQuery, state: FSMContext):
+    await callback.answer()
+    answer = callback.data.replace("test_", "")  # "A", "B", "C" yoki "D"
+
+    data = await state.get_data()
+    idx = data["test_index"]
+    test = TESTS[data["test_indices"][idx]]
+    is_correct = answer == test["answer"]
+    correct = data["test_correct"] + (1 if is_correct else 0)
+    next_idx = idx + 1
+    total = len(data["test_indices"])
+
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except TelegramBadRequest:
+        pass
+
+    if next_idx < total:
+        await state.update_data(test_index=next_idx, test_correct=correct)
+        await _show_test(callback.message, state)
+    else:
+        await state.update_data(test_correct=correct)
+        await callback.message.answer(
+            f"✅ Testlar yakunlandi!\n\n"
+            f"📊 Natija: <b>{correct}/{total}</b>\n\n"
+            "📎 Shartnomangiz tayyorlanmoqda..."
+        )
         await _finish_registration(callback.message, state, tg_id=callback.from_user.id)
 
 

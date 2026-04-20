@@ -89,6 +89,19 @@ def get_study_type_kb(direction_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def get_test_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="A", callback_data="test_A"),
+                InlineKeyboardButton(text="B", callback_data="test_B"),
+                InlineKeyboardButton(text="C", callback_data="test_C"),
+                InlineKeyboardButton(text="D", callback_data="test_D"),
+            ]
+        ]
+    )
+
+
 def get_confirm_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

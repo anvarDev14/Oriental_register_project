@@ -10,3 +10,4 @@ class Register(StatesGroup):
     waiting_for_direction = State()
     waiting_for_study_type = State()
     waiting_for_confirmation = State()
+    waiting_for_test = State()
